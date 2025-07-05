@@ -1,0 +1,1348 @@
+// Test Tapşırıqları Formatları - Tam JavaScript Tətbiqi
+
+// Test sualları məlumat bazası
+const testQuestions = {
+    multiple_choice: {
+        question_id: 1,
+        title: "🔘 Çoxlu Seçim Sualı",
+        question_text: "2x + 8 = 20 tənliyinin həlli nədir?",
+        question_type: "multiple_choice",
+        options: {
+            "x = 4": "A",
+            "x = 6": "B", 
+            "x = 8": "C",
+            "x = 12": "D"
+        },
+        correct_answer: "B",
+        difficulty_level: 2,
+        topic: "Tənliklər",
+        time_limit: 60,
+        explanation: "2x + 8 = 20 → 2x = 12 → x = 6",
+        usage_percent: 45
+    },
+    
+    multiple_response: {
+        question_id: 2,
+        title: "☑️ Çoxlu Cavab Sualı",
+        question_text: "Aşağıdakı hansı ədədlər irrational ədədlərdir? (Birdən çox seçim mümkündür)",
+        question_type: "multiple_response",
+        options: {
+            "√2": "A",
+            "π (pi)": "B",
+            "3.14": "C",
+            "√9": "D",
+            "e (Euler ədədi)": "E"
+        },
+        correct_answers: ["A", "B", "E"],
+        difficulty_level: 3,
+        topic: "Ədədlər",
+        time_limit: 90,
+        explanation: "√2, π və e irrational ədədlərdir. 3.14 və √9=3 rational ədədlərdir.",
+        usage_percent: 20
+    },
+    
+    true_false: {
+        question_id: 3,
+        title: "✓/✗ Doğru/Yanlış Sualı",
+        question_text: "Kvadrat köklər həmişə müsbət ədədlər verir",
+        question_type: "true_false",
+        correct_answer: true,
+        difficulty_level: 1,
+        topic: "Kök əməliyyatları",
+        time_limit: 30,
+        explanation: "Bəli, riyaziyyatda kvadrat kök simvolu (√) həmişə müsbət nəticə verir",
+        usage_percent: 15
+    },
+    
+    open_ended: {
+        question_id: 4,
+        title: "📝 Açıq Cavablı Sual",
+        question_text: "Kvadrat tənliyin diskriminant düsturunu yazın və onun mənasını izah edin.",
+        question_type: "open_ended",
+        expected_keywords: ["diskriminant", "D", "b²-4ac", "kök", "həll", "tənlik"],
+        max_score: 10,
+        difficulty_level: 3,
+        topic: "Kvadrat tənliklər",
+        time_limit: 300,
+        sample_answer: "Diskriminant D = b²-4ac düsturu ilə hesablanır. Əgər D>0 iki fərqli həll, D=0 bir həll, D<0 həll yoxdur.",
+        usage_percent: 10
+    },
+    
+    fill_blanks: {
+        question_id: 5,
+        title: "📄 Boşluqları Doldurun",
+        question_text: "Sin²x + Cos²x = ___ və tg(45°) = ___",
+        question_type: "fill_blanks",
+        blanks: {
+            blank1: {correct: "1", alternatives: ["1", "bir"]},
+            blank2: {correct: "1", alternatives: ["1", "bir"]}
+        },
+        difficulty_level: 2,
+        topic: "Trigonometriya",
+        time_limit: 45,
+        explanation: "Sin²x + Cos²x = 1 (əsas trigonometrik düstur), tg(45°) = 1",
+        usage_percent: 5
+    },
+    
+    matching: {
+        question_id: 6,
+        title: "🔗 Uyğunlaşdırma Sualı",
+        question_text: "Sol və sağ sütunları uyğunlaşdırın:",
+        question_type: "matching",
+        left_items: {
+            "1": "Sin(30°)",
+            "2": "Cos(60°)", 
+            "3": "Tg(45°)",
+            "4": "Sin(90°)"
+        },
+        right_items: {
+            "A": "1",
+            "B": "1/2",
+            "C": "√3/2",
+            "D": "0"
+        },
+        correct_matches: {"1": "B", "2": "B", "3": "A", "4": "A"},
+        difficulty_level: 3,
+        topic: "Trigonometriya",
+        time_limit: 120,
+        usage_percent: 3
+    },
+    
+    ordering: {
+        question_id: 7,
+        title: "🔢 Sıralama Sualı",
+        question_text: "Aşağıdakı ədədləri kiçikdən böyüyə doğru düzün:",
+        question_type: "ordering",
+        items: {
+            "A": "√16",
+            "B": "π",
+            "C": "2.5",
+            "D": "3²/2",
+            "E": "√5"
+        },
+        correct_order: ["E", "C", "B", "A", "D"], // √5≈2.24, 2.5, π≈3.14, 4, 4.5
+        difficulty_level: 4,
+        topic: "Ədədlərin müqayisəsi",
+        time_limit: 90,
+        explanation: "√5≈2.24 < 2.5 < π≈3.14 < √16=4 < 3²/2=4.5",
+        usage_percent: 2
+    }
+};
+
+// Global dəyişənlər
+let currentQuestion = null;
+let testResults = [];
+let timerInterval = null;
+let remainingTime = 0;
+let timerActive = false;
+let testStarted = false;
+
+// DOM yüklənəndən sonra başlat
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+    loadFormatDemos();
+    setupEventListeners();
+    updateStatistics();
+});
+
+// Tətbiqi başlat
+function initializeApp() {
+    showTab('formats');
+    updateStatistics();
+    loadResultsTable();
+}
+
+// Event listener-ləri qur
+function setupEventListeners() {
+    // Tab navigasiyası
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const tabName = this.getAttribute('data-tab');
+            showTab(tabName);
+        });
+    });
+
+    // Test başlatma
+    document.getElementById('start-test')?.addEventListener('click', startTest);
+    
+    // Cavab təsdiqlənməsi
+    document.getElementById('submit-answer')?.addEventListener('click', submitAnswer);
+    
+    // Növbəti sual
+    document.getElementById('next-question')?.addEventListener('click', nextQuestion);
+    
+    // Nəticələri yükləmə
+    document.getElementById('download-results')?.addEventListener('click', downloadResults);
+    
+    // Testə keçid
+    document.getElementById('go-to-test')?.addEventListener('click', () => showTab('interactive'));
+}
+
+// Tab göstərme
+function showTab(tabName) {
+    // Bütün tab-ları gizlət
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Seçilmiş tab-ı göstər
+    const targetTab = document.getElementById(tabName + '-tab');
+    if (targetTab) {
+        targetTab.style.display = 'block';
+    }
+    
+    // Navigation link-ləri yenilə
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    const activeLink = document.querySelector(`[data-tab="${tabName}"]`);
+    if (activeLink) {
+        activeLink.classList.add('active');
+    }
+    
+    // Tab-a görə məzmunu yenilə
+    if (tabName === 'results') {
+        loadResultsTable();
+        updateValueBoxes();
+    } else if (tabName === 'statistics') {
+        updateStatistics();
+    }
+}
+
+// Format demo-larını yüklə
+function loadFormatDemos() {
+    const container = document.getElementById('format-demos');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    Object.keys(testQuestions).forEach(formatKey => {
+        const question = testQuestions[formatKey];
+        const demoCard = createFormatDemo(question, formatKey);
+        container.appendChild(demoCard);
+    });
+}
+
+// Format demo kartı yarat
+function createFormatDemo(question, formatKey) {
+    const card = document.createElement('div');
+    card.className = 'format-card';
+    
+    const progressBar = `
+        <div class="progress-container">
+            <div class="progress-bar" style="width: ${question.usage_percent}%">
+                İstifadə: ${question.usage_percent}%
+            </div>
+        </div>
+    `;
+    
+    let inputHTML = '';
+    let correctAnswerHTML = '';
+    
+    // Format tipinə görə input və cavab göstər
+    switch(question.question_type) {
+        case 'multiple_choice':
+            inputHTML = createMultipleChoiceInput(question, formatKey);
+            const correctText = Object.keys(question.options).find(key => question.options[key] === question.correct_answer);
+            correctAnswerHTML = `<div class="correct-answer">✓ Düzgün cavab: ${correctText}</div>`;
+            break;
+            
+        case 'multiple_response':
+            inputHTML = createMultipleResponseInput(question, formatKey);
+            const correctTexts = question.correct_answers.map(ans => 
+                Object.keys(question.options).find(key => question.options[key] === ans)
+            ).join(', ');
+            correctAnswerHTML = `<div class="correct-answer">✓ Düzgün cavablar: ${correctTexts}</div>`;
+            break;
+            
+        case 'true_false':
+            inputHTML = createTrueFalseInput(question, formatKey);
+            correctAnswerHTML = `<div class="correct-answer">✓ Düzgün cavab: ${question.correct_answer ? 'Doğru' : 'Yanlış'}</div>`;
+            break;
+            
+        case 'open_ended':
+            inputHTML = createOpenEndedInput(question, formatKey);
+            correctAnswerHTML = `<div class="correct-answer">✓ Nümunə: ${question.sample_answer.substring(0, 50)}...</div>`;
+            break;
+            
+        case 'fill_blanks':
+            inputHTML = createFillBlanksInput(question, formatKey);
+            correctAnswerHTML = `<div class="correct-answer">✓ Düzgün cavablar: 1, 1</div>`;
+            break;
+            
+        case 'matching':
+            inputHTML = createMatchingInput(question, formatKey);
+            correctAnswerHTML = `<div class="correct-answer">✓ Düzgün uyğunluq: 1-B, 2-B, 3-A, 4-A</div>`;
+            break;
+            
+        case 'ordering':
+            inputHTML = createOrderingInput(question, formatKey);
+            correctAnswerHTML = `<div class="correct-answer">✓ Düzgün sıra: ${question.correct_order.join(' < ')}</div>`;
+            break;
+    }
+    
+    card.innerHTML = `
+        <div class="card-header">
+            <h3>${question.title}</h3>
+        </div>
+        <div class="card-body">
+            <h4>${question.question_text}</h4>
+            ${progressBar}
+            <hr>
+            ${inputHTML}
+            ${correctAnswerHTML}
+            <hr>
+            <div class="question-meta">
+                <p><strong>📊 Çətinlik:</strong> ${'⭐'.repeat(question.difficulty_level)} (${question.difficulty_level}/5)</p>
+                <p><strong>📚 Mövzu:</strong> ${question.topic}</p>
+                <p><strong>⏱️ Vaxt:</strong> ${question.time_limit} saniyə</p>
+                ${question.explanation ? `<p><strong>💡 İzah:</strong> ${question.explanation}</p>` : ''}
+            </div>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Multiple choice input yaradır
+function createMultipleChoiceInput(question, formatKey) {
+    let html = '<div class="radio-group">';
+    Object.keys(question.options).forEach(optionText => {
+        const value = question.options[optionText];
+        html += `
+            <label class="radio-option">
+                <input type="radio" name="demo_${formatKey}" value="${value}">
+                <span class="radio-text">${optionText}</span>
+            </label>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+// Multiple response input yaradır
+function createMultipleResponseInput(question, formatKey) {
+    let html = '<div class="checkbox-group">';
+    Object.keys(question.options).forEach(optionText => {
+        const value = question.options[optionText];
+        html += `
+            <label class="checkbox-option">
+                <input type="checkbox" name="demo_${formatKey}" value="${value}">
+                <span class="checkbox-text">${optionText}</span>
+            </label>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+// True/False input yaradır
+function createTrueFalseInput(question, formatKey) {
+    return `
+        <div class="radio-group">
+            <label class="radio-option">
+                <input type="radio" name="demo_${formatKey}" value="true">
+                <span class="radio-text">Doğru</span>
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="demo_${formatKey}" value="false">
+                <span class="radio-text">Yanlış</span>
+            </label>
+        </div>
+    `;
+}
+
+// Open ended input yaradır
+function createOpenEndedInput(question, formatKey) {
+    return `
+        <textarea id="demo_${formatKey}" placeholder="Cavabınızı buraya yazın..." rows="3" class="text-input"></textarea>
+    `;
+}
+
+// Fill blanks input yaradır
+function createFillBlanksInput(question, formatKey) {
+    return `
+        <div class="fill-blanks-container">
+            <div class="blank-row">
+                <label>Birinci boşluq:</label>
+                <input type="text" id="demo_${formatKey}_1" placeholder="1-ci boşluq" class="blank-input">
+            </div>
+            <div class="blank-row">
+                <label>İkinci boşluq:</label>
+                <input type="text" id="demo_${formatKey}_2" placeholder="2-ci boşluq" class="blank-input">
+            </div>
+        </div>
+    `;
+}
+
+// Matching input yaradır
+function createMatchingInput(question, formatKey) {
+    let leftColumn = '<h5>Sol sütun:</h5>';
+    Object.keys(question.left_items).forEach(key => {
+        leftColumn += `<div class="match-item">${key}: ${question.left_items[key]}</div>`;
+    });
+    
+    let rightColumn = '<h5>Sağ sütun:</h5>';
+    Object.keys(question.right_items).forEach(key => {
+        rightColumn += `<div class="match-item">${key}: ${question.right_items[key]}</div>`;
+    });
+    
+    return `
+        <div class="matching-container">
+            <div class="match-column">${leftColumn}</div>
+            <div class="match-column">${rightColumn}</div>
+        </div>
+    `;
+}
+
+// Ordering input yaradır
+function createOrderingInput(question, formatKey) {
+    let itemsHTML = '';
+    Object.keys(question.items).forEach(key => {
+        itemsHTML += `<span class="order-item">${key}: ${question.items[key]}</span>`;
+    });
+    
+    return `
+        <p>Verilən ədədləri kiçikdən böyüyə sıralayın:</p>
+        <div class="ordering-items">${itemsHTML}</div>
+    `;
+}
+
+// Test başlat
+function startTest() {
+    const selectedFormat = document.getElementById('selected-format').value;
+    if (!selectedFormat || !testQuestions[selectedFormat]) {
+        showNotification('⚠️ Zəhmət olmasa test formatını seçin!', 'warning');
+        return;
+    }
+    
+    currentQuestion = testQuestions[selectedFormat];
+    remainingTime = currentQuestion.time_limit;
+    timerActive = true;
+    testStarted = true;
+    
+    updateTestInfo();
+    createCurrentQuestionUI();
+    startTimer();
+    
+    showNotification('🚀 Test başladı! Uğurlar!', 'success');
+}
+
+// Timer başlat
+function startTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+    }
+    
+    timerInterval = setInterval(() => {
+        if (timerActive && remainingTime > 0) {
+            remainingTime--;
+            updateTimerDisplay();
+            
+            if (remainingTime <= 0) {
+                timerActive = false;
+                showNotification('⏰ Vaxt bitdi!', 'warning');
+                clearInterval(timerInterval);
+            }
+        }
+    }, 1000);
+}
+
+// Timer görünüşünü yenilə
+function updateTimerDisplay() {
+    const minutes = Math.floor(remainingTime / 60);
+    const seconds = remainingTime % 60;
+    const timeText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    const timerElement = document.getElementById('timer-text');
+    if (timerElement) {
+        if (remainingTime <= 30 && remainingTime > 0) {
+            timerElement.textContent = `⚠️ ${timeText}`;
+            timerElement.style.color = '#dc3545';
+        } else {
+            timerElement.textContent = timeText;
+            timerElement.style.color = '#fd7e14';
+        }
+    }
+}
+
+// Test məlumatlarını yenilə
+function updateTestInfo() {
+    const testInfoElement = document.getElementById('test-info');
+    if (!testInfoElement) return;
+    
+    if (currentQuestion) {
+        testInfoElement.innerHTML = `
+            <p><strong>📋 Format:</strong> ${currentQuestion.title}</p>
+            <p><strong>📚 Mövzu:</strong> ${currentQuestion.topic}</p>
+            <p><strong>⭐ Çətinlik:</strong> ${currentQuestion.difficulty_level}/5</p>
+            <p><strong>🎯 Sual ID:</strong> ${currentQuestion.question_id}</p>
+            <p><strong>⏱️ Vaxt limiti:</strong> ${currentQuestion.time_limit} saniyə</p>
+        `;
+    } else {
+        testInfoElement.innerHTML = `
+            <p>Test seçilməyib.</p>
+            <p>Yuxarıdan format seçib 'Testi Başlat' düyməsini basın.</p>
+        `;
+    }
+    
+    // Timer status yenilə
+    const statusElement = document.getElementById('timer-status');
+    if (statusElement) {
+        if (timerActive) {
+            statusElement.textContent = '🟢 Timer aktiv';
+        } else if (testStarted) {
+            statusElement.textContent = '🔴 Vaxt bitdi';
+        } else {
+            statusElement.textContent = '⚪ Test başlamayıb';
+        }
+    }
+}
+
+// Hazırki sual UI yaratır
+function createCurrentQuestionUI() {
+    const container = document.getElementById('current-question');
+    if (!container || !currentQuestion) return;
+    
+    let inputHTML = '';
+    
+    switch(currentQuestion.question_type) {
+        case 'multiple_choice':
+            inputHTML = createCurrentMultipleChoice();
+            break;
+        case 'multiple_response':
+            inputHTML = createCurrentMultipleResponse();
+            break;
+        case 'true_false':
+            inputHTML = createCurrentTrueFalse();
+            break;
+        case 'open_ended':
+            inputHTML = createCurrentOpenEnded();
+            break;
+        case 'fill_blanks':
+            inputHTML = createCurrentFillBlanks();
+            break;
+        case 'matching':
+            inputHTML = createCurrentMatching();
+            break;
+        case 'ordering':
+            inputHTML = createCurrentOrdering();
+            break;
+    }
+    
+    container.innerHTML = `
+        <h3>📝 Sual ${currentQuestion.question_id}: ${currentQuestion.question_text}</h3>
+        ${inputHTML}
+    `;
+    
+    container.style.display = 'block';
+}
+
+// Hazırki multiple choice yaradır
+function createCurrentMultipleChoice() {
+    let html = '<div class="question-options">';
+    Object.keys(currentQuestion.options).forEach(optionText => {
+        const value = currentQuestion.options[optionText];
+        html += `
+            <label class="option-label">
+                <input type="radio" name="current_answer" value="${value}">
+                <span>${optionText}</span>
+            </label>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+// Hazırki multiple response yaradır
+function createCurrentMultipleResponse() {
+    let html = '<div class="question-options">';
+    Object.keys(currentQuestion.options).forEach(optionText => {
+        const value = currentQuestion.options[optionText];
+        html += `
+            <label class="option-label">
+                <input type="checkbox" name="current_answer" value="${value}">
+                <span>${optionText}</span>
+            </label>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+// Hazırki true/false yaradır
+function createCurrentTrueFalse() {
+    return `
+        <div class="question-options">
+            <label class="option-label">
+                <input type="radio" name="current_answer" value="true">
+                <span>✓ Doğru</span>
+            </label>
+            <label class="option-label">
+                <input type="radio" name="current_answer" value="false">
+                <span>✗ Yanlış</span>
+            </label>
+        </div>
+    `;
+}
+
+// Hazırki open ended yaradır
+function createCurrentOpenEnded() {
+    return `
+        <div class="question-input">
+            <label>Cavabınızı yazın:</label>
+            <textarea id="current_answer" placeholder="Ətraflı cavabınızı buraya yazın..." rows="5"></textarea>
+        </div>
+    `;
+}
+
+// Hazırki fill blanks yaradır
+function createCurrentFillBlanks() {
+    return `
+        <div class="fill-blanks-current">
+            <h5>Boşluqları doldurun:</h5>
+            <p>Sin²x + Cos²x = ___ və tg(45°) = ___</p>
+            <div class="blanks-row">
+                <div class="blank-input-group">
+                    <label>Birinci boşluq (Sin²x + Cos²x = ?):</label>
+                    <input type="text" id="blank1" placeholder="Cavabı buraya yazın">
+                </div>
+                <div class="blank-input-group">
+                    <label>İkinci boşluq (tg(45°) = ?):</label>
+                    <input type="text" id="blank2" placeholder="Cavabı buraya yazın">
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Hazırki matching yaradır
+function createCurrentMatching() {
+    let leftColumn = '<h6>Sol sütun:</h6><div class="match-items">';
+    Object.keys(currentQuestion.left_items).forEach(key => {
+        leftColumn += `<div class="match-item-current">${key}: ${currentQuestion.left_items[key]}</div>`;
+    });
+    leftColumn += '</div>';
+    
+    let rightColumn = '<h6>Sağ sütun:</h6><div class="match-items">';
+    Object.keys(currentQuestion.right_items).forEach(key => {
+        rightColumn += `<div class="match-item-current">${key}: ${currentQuestion.right_items[key]}</div>`;
+    });
+    rightColumn += '</div>';
+    
+    return `
+        <div class="matching-current">
+            <h5>Sol və sağ sütunları uyğunlaşdırın:</h5>
+            <div class="match-columns">
+                <div class="match-column">${leftColumn}</div>
+                <div class="match-column">${rightColumn}</div>
+            </div>
+            <div class="match-input">
+                <label>Uyğunluqları yazın (məsələn: 1-B, 2-A, 3-C, 4-D):</label>
+                <textarea id="current_answer" placeholder="Cavabınızı '1-B, 2-A, 3-C, 4-D' formatında yazın" rows="3"></textarea>
+            </div>
+        </div>
+    `;
+}
+
+// Hazırki ordering yaradır
+function createCurrentOrdering() {
+    let itemsHTML = '';
+    Object.keys(currentQuestion.items).forEach(key => {
+        itemsHTML += `<span class="order-item-current">${key}: ${currentQuestion.items[key]}</span>`;
+    });
+    
+    return `
+        <div class="ordering-current">
+            <h5>Aşağıdakı ədədləri kiçikdən böyüyə sıralayın:</h5>
+            <div class="ordering-items-current">${itemsHTML}</div>
+            <div class="order-input">
+                <label>Sıralamanı yazın (məsələn: E, C, B, A, D):</label>
+                <textarea id="current_answer" placeholder="Hərf sırasını kiçikdən böyüyə yazın: E, C, B, A, D" rows="2"></textarea>
+            </div>
+        </div>
+    `;
+}
+
+// Cavabı təsdiqlə
+function submitAnswer() {
+    if (!currentQuestion) {
+        showNotification('⚠️ Aktiv sual yoxdur!', 'warning');
+        return;
+    }
+    
+    let userAnswer = getCurrentAnswer();
+    
+    if (!userAnswer || userAnswer.length === 0) {
+        showNotification('⚠️ Zəhmət olmasa cavab verin!', 'warning');
+        return;
+    }
+    
+    // Qiymətləndirmə
+    const result = evaluateAnswer(currentQuestion, userAnswer);
+    
+    // Nəticəni saxla
+    const newResult = {
+        question_id: currentQuestion.question_id,
+        question_text: currentQuestion.question_text.substring(0, 50),
+        question_type: currentQuestion.question_type,
+        topic: currentQuestion.topic,
+        difficulty: currentQuestion.difficulty_level,
+        user_answer: Array.isArray(userAnswer) ? userAnswer.join(', ') : userAnswer,
+        correct_answer: getCorrectAnswerText(currentQuestion),
+        is_correct: result.is_correct,
+        score: result.score,
+        max_score: currentQuestion.question_type === 'open_ended' ? currentQuestion.max_score : 1,
+        response_time: currentQuestion.time_limit - remainingTime,
+        timestamp: new Date().toISOString()
+    };
+    
+    testResults.push(newResult);
+    timerActive = false;
+    clearInterval(timerInterval);
+    
+    // Feedback göstər
+    showAnswerFeedback(result, userAnswer);
+    
+    // Bildiriş göstər
+    showNotification(
+        result.is_correct ? '🎉 Təbriklər! Doğru cavab!' : '😐 Yanlış cavab, ancaq təcrübə qazandınız!',
+        result.is_correct ? 'success' : 'warning'
+    );
+}
+
+// Hazırki cavabı al
+function getCurrentAnswer() {
+    if (!currentQuestion) return null;
+    
+    switch(currentQuestion.question_type) {
+        case 'multiple_choice':
+        case 'true_false':
+            const radioInput = document.querySelector('input[name="current_answer"]:checked');
+            return radioInput ? radioInput.value : null;
+            
+        case 'multiple_response':
+            const checkboxInputs = document.querySelectorAll('input[name="current_answer"]:checked');
+            return Array.from(checkboxInputs).map(input => input.value);
+            
+        case 'open_ended':
+        case 'matching':
+        case 'ordering':
+            const textInput = document.getElementById('current_answer');
+            return textInput ? textInput.value.trim() : null;
+            
+        case 'fill_blanks':
+            const blank1 = document.getElementById('blank1');
+            const blank2 = document.getElementById('blank2');
+            return [blank1 ? blank1.value.trim() : '', blank2 ? blank2.value.trim() : ''];
+            
+        default:
+            return null;
+    }
+}
+
+// Cavabı qiymətləndir
+function evaluateAnswer(question, userAnswer) {
+    // Əgər cavab boşdursa
+    if (!userAnswer || userAnswer.length === 0 || 
+        (typeof userAnswer === 'string' && userAnswer.trim() === '')) {
+        return {
+            is_correct: false,
+            score: 0,
+            correct_info: "Cavab verilməyib"
+        };
+    }
+    
+    switch(question.question_type) {
+        case 'multiple_choice':
+            const isCorrect = userAnswer === question.correct_answer;
+            const correctText = Object.keys(question.options).find(key => 
+                question.options[key] === question.correct_answer
+            );
+            return {
+                is_correct: isCorrect,
+                score: isCorrect ? 1 : 0,
+                correct_info: correctText || question.correct_answer
+            };
+            
+        case 'multiple_response':
+            const isFullyCorrect = question.correct_answers.length === userAnswer.length && 
+                                   question.correct_answers.every(ans => userAnswer.includes(ans));
+            const partialScore = userAnswer.filter(ans => 
+                question.correct_answers.includes(ans)
+            ).length / question.correct_answers.length;
+            
+            const correctTexts = question.correct_answers.map(ans => 
+                Object.keys(question.options).find(key => question.options[key] === ans)
+            ).join(', ');
+            
+            return {
+                is_correct: isFullyCorrect,
+                score: isFullyCorrect ? 1 : Math.round(partialScore * 100) / 100,
+                correct_info: correctTexts
+            };
+            
+        case 'true_false':
+            const boolAnswer = userAnswer === 'true';
+            const correctBool = boolAnswer === question.correct_answer;
+            return {
+                is_correct: correctBool,
+                score: correctBool ? 1 : 0,
+                correct_info: question.correct_answer ? 'Doğru' : 'Yanlış'
+            };
+            
+        case 'open_ended':
+            const userText = typeof userAnswer === 'string' ? userAnswer.toLowerCase() : '';
+            const keywordsFound = question.expected_keywords.filter(keyword => 
+                userText.includes(keyword.toLowerCase())
+            ).length;
+            
+            const score = (keywordsFound / question.expected_keywords.length) * question.max_score;
+            
+            return {
+                is_correct: score >= question.max_score * 0.6,
+                score: Math.round(score * 10) / 10,
+                correct_info: question.sample_answer
+            };
+            
+        case 'fill_blanks':
+            let correctCount = 0;
+            if (Array.isArray(userAnswer) && userAnswer.length >= 2) {
+                // Hər iki boşluq üçün "1" olub-olmadığını yoxla
+                if (userAnswer[0].toLowerCase().includes('1') || userAnswer[0].toLowerCase().includes('bir')) {
+                    correctCount++;
+                }
+                if (userAnswer[1].toLowerCase().includes('1') || userAnswer[1].toLowerCase().includes('bir')) {
+                    correctCount++;
+                }
+            }
+            
+            return {
+                is_correct: correctCount === 2,
+                score: correctCount * 0.5,
+                correct_info: "Sin²x + Cos²x = 1 və tg(45°) = 1"
+            };
+            
+        case 'matching':
+            const userText = typeof userAnswer === 'string' ? userAnswer : '';
+            const userMatches = userText.split(/[,;]/).map(match => match.trim());
+            let correctMatches = 0;
+            const totalMatches = Object.keys(question.correct_matches).length;
+            
+            userMatches.forEach(match => {
+                if (match.includes('-')) {
+                    const [left, right] = match.split('-').map(part => part.trim());
+                    if (question.correct_matches[left] === right) {
+                        correctMatches++;
+                    }
+                }
+            });
+            
+            const matchScore = totalMatches > 0 ? correctMatches / totalMatches : 0;
+            const correctInfo = Object.keys(question.correct_matches).map(key => 
+                `${key}-${question.correct_matches[key]}`
+            ).join(', ');
+            
+            return {
+                is_correct: matchScore >= 0.8,
+                score: Math.round(matchScore * 100) / 100,
+                correct_info: correctInfo
+            };
+            
+        case 'ordering':
+            const userText2 = typeof userAnswer === 'string' ? userAnswer : '';
+            const userOrder = userText2.split(/[,;]/).map(item => item.trim()).filter(item => item);
+            
+            const isOrderCorrect = JSON.stringify(userOrder) === JSON.stringify(question.correct_order);
+            
+            // Qismən bal - neçə element düzgün yerdədir
+            let partialOrderScore = 0;
+            if (userOrder.length === question.correct_order.length) {
+                for (let i = 0; i < userOrder.length; i++) {
+                    if (userOrder[i] === question.correct_order[i]) {
+                        partialOrderScore++;
+                    }
+                }
+                partialOrderScore = partialOrderScore / question.correct_order.length;
+            }
+            
+            return {
+                is_correct: isOrderCorrect,
+                score: isOrderCorrect ? 1 : Math.round(partialOrderScore * 100) / 100,
+                correct_info: question.correct_order.join(' < ')
+            };
+            
+        default:
+            return {
+                is_correct: false,
+                score: 0,
+                correct_info: "Format dəstəklənmir"
+            };
+    }
+}
+
+// Düzgün cavab mətnini al
+function getCorrectAnswerText(question) {
+    switch(question.question_type) {
+        case 'multiple_choice':
+            return Object.keys(question.options).find(key => 
+                question.options[key] === question.correct_answer
+            ) || question.correct_answer;
+            
+        case 'multiple_response':
+            return question.correct_answers.map(ans => 
+                Object.keys(question.options).find(key => question.options[key] === ans)
+            ).join(', ');
+            
+        case 'true_false':
+            return question.correct_answer ? 'Doğru' : 'Yanlış';
+            
+        case 'open_ended':
+            return question.sample_answer.substring(0, 50) + '...';
+            
+        case 'fill_blanks':
+            return "Sin²x + Cos²x = 1, tg(45°) = 1";
+            
+        case 'matching':
+            return Object.keys(question.correct_matches).map(key => 
+                `${key}-${question.correct_matches[key]}`
+            ).join(', ');
+            
+        case 'ordering':
+            return question.correct_order.join(' < ');
+            
+        default:
+            return 'Naməlum';
+    }
+}
+
+// Cavab feedback-ini göstər
+function showAnswerFeedback(result, userAnswer) {
+    const feedbackContainer = document.getElementById('answer-feedback');
+    if (!feedbackContainer) return;
+    
+    const feedbackHTML = `
+        <div class="feedback-box ${result.is_correct ? 'feedback-correct' : 'feedback-incorrect'}">
+            <h4>${result.is_correct ? '🎉 Əla! Doğru cavab!' : '😔 Təəssüf, yanlış cavab'}</h4>
+            <div class="feedback-details">
+                <p><strong>Sizin cavabınız:</strong> ${Array.isArray(userAnswer) ? userAnswer.join(', ') : userAnswer}</p>
+                <p><strong>Düzgün cavab:</strong> ${result.correct_info}</p>
+                <p><strong>Aldığınız bal:</strong> ${result.score}/${currentQuestion.question_type === 'open_ended' ? currentQuestion.max_score : 1}</p>
+                ${currentQuestion.explanation ? `
+                    <div class="explanation">
+                        <h5>💡 İzah:</h5>
+                        <p>${currentQuestion.explanation}</p>
+                    </div>
+                ` : ''}
+                <p><strong>⏱️ Cavab müddəti:</strong> ${currentQuestion.time_limit - remainingTime} saniyə</p>
+            </div>
+        </div>
+    `;
+    
+    feedbackContainer.innerHTML = feedbackHTML;
+    feedbackContainer.style.display = 'block';
+}
+
+// Növbəti sual
+function nextQuestion() {
+    const formatSelect = document.getElementById('selected-format');
+    const currentFormats = Object.keys(testQuestions);
+    const currentIndex = currentFormats.indexOf(formatSelect.value);
+    const nextIndex = currentIndex < currentFormats.length - 1 ? currentIndex + 1 : 0;
+    
+    formatSelect.value = currentFormats[nextIndex];
+    
+    // Timer sıfırla
+    timerActive = false;
+    remainingTime = 0;
+    currentQuestion = null;
+    clearInterval(timerInterval);
+    
+    // UI təmizlə
+    document.getElementById('current-question').style.display = 'none';
+    document.getElementById('answer-feedback').style.display = 'none';
+    document.getElementById('timer-text').textContent = '--:--';
+    
+    updateTestInfo();
+    
+    showNotification('➡️ Növbəti format üçün hazır! \'Testi Başlat\' basın.', 'info');
+}
+
+// Nəticələr cədvəlini yüklə
+function loadResultsTable() {
+    const tableContainer = document.getElementById('results-table-container');
+    const noResultsContainer = document.getElementById('no-results');
+    
+    if (testResults.length === 0) {
+        if (tableContainer) tableContainer.style.display = 'none';
+        if (noResultsContainer) noResultsContainer.style.display = 'block';
+        return;
+    }
+    
+    if (tableContainer) tableContainer.style.display = 'block';
+    if (noResultsContainer) noResultsContainer.style.display = 'none';
+    
+    const tableBody = document.getElementById('results-table-body');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    testResults.forEach((result, index) => {
+        const row = document.createElement('tr');
+        
+        const formatName = getFormatDisplayName(result.question_type);
+        const resultIcon = result.is_correct ? '✅ Doğru' : '❌ Yanlış';
+        const scoreText = `${result.score}/${result.max_score}`;
+        const timeText = `${result.response_time}s`;
+        
+        row.innerHTML = `
+            <td>Q${result.question_id}</td>
+            <td>${formatName}</td>
+            <td>${result.topic}</td>
+            <td>${'⭐'.repeat(result.difficulty)}</td>
+            <td class="${result.is_correct ? 'text-success' : 'text-danger'}">${resultIcon}</td>
+            <td>${scoreText}</td>
+            <td>${timeText}</td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+}
+
+// Format adını göstərmək üçün
+function getFormatDisplayName(questionType) {
+    const formatNames = {
+        'multiple_choice': '🔘 Çoxlu Seçim',
+        'multiple_response': '☑️ Çoxlu Cavab',
+        'true_false': '✓/✗ Doğru/Yanlış',
+        'open_ended': '📝 Açıq Cavablı',
+        'fill_blanks': '📄 Boşluqları Doldurun',
+        'matching': '🔗 Uyğunlaşdırma',
+        'ordering': '🔢 Sıralama'
+    };
+    return formatNames[questionType] || questionType;
+}
+
+// Value box-ları yenilə
+function updateValueBoxes() {
+    const totalQuestions = testResults.length;
+    const correctAnswers = testResults.filter(result => result.is_correct).length;
+    const successRate = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    const averageScore = totalQuestions > 0 ? 
+        Math.round(testResults.reduce((sum, result) => sum + result.score, 0) / totalQuestions * 10) / 10 : 0;
+    
+    // Total questions
+    const totalElement = document.getElementById('total-questions-value');
+    if (totalElement) totalElement.textContent = totalQuestions;
+    
+    // Success rate
+    const successElement = document.getElementById('success-rate-value');
+    if (successElement) {
+        successElement.textContent = `${successRate}%`;
+        const container = successElement.closest('.value-box');
+        if (container) {
+            container.className = `value-box ${successRate >= 80 ? 'success' : successRate >= 60 ? 'warning' : 'danger'}`;
+        }
+    }
+    
+    // Average score
+    const avgElement = document.getElementById('average-score-value');
+    if (avgElement) avgElement.textContent = averageScore;
+}
+
+// Statistikaları yenilə
+function updateStatistics() {
+    updateDifficultyChart();
+    updateFormatPieChart();
+    updateUsageBarChart();
+    updateDetailedAnalysis();
+}
+
+// Çətinlik chartını yenilə
+function updateDifficultyChart() {
+    const chartContainer = document.getElementById('difficulty-chart');
+    if (!chartContainer) return;
+    
+    let difficultyData;
+    if (testResults.length > 0) {
+        // Real data
+        const diffCounts = {};
+        testResults.forEach(result => {
+            const level = `Səviyyə ${result.difficulty}`;
+            diffCounts[level] = (diffCounts[level] || 0) + 1;
+        });
+        difficultyData = Object.keys(diffCounts).map(level => ({
+            level: level,
+            count: diffCounts[level]
+        }));
+    } else {
+        // Demo data
+        difficultyData = [
+            {level: 'Səviyyə 1', count: 2},
+            {level: 'Səviyyə 2', count: 3},
+            {level: 'Səviyyə 3', count: 1},
+            {level: 'Səviyyə 4', count: 1},
+            {level: 'Səviyyə 5', count: 0}
+        ];
+    }
+    
+    // Simple bar chart
+    let chartHTML = '<div class="simple-chart">';
+    difficultyData.forEach(item => {
+        const barWidth = Math.max(item.count * 30, 10);
+        chartHTML += `
+            <div class="chart-bar">
+                <div class="bar-label">${item.level}</div>
+                <div class="bar-visual" style="width: ${barWidth}px; background: linear-gradient(90deg, #667eea, #764ba2);">
+                    <span class="bar-value">${item.count}</span>
+                </div>
+            </div>
+        `;
+    });
+    chartHTML += '</div>';
+    
+    chartContainer.innerHTML = `
+        <h4>⭐ Çətinlik Səviyyəsinə Görə Suallar</h4>
+        ${chartHTML}
+    `;
+}
+
+// Format pie chart yenilə
+function updateFormatPieChart() {
+    const chartContainer = document.getElementById('format-pie-chart');
+    if (!chartContainer) return;
+    
+    const formatData = [
+        {name: 'Çoxlu Seçim', percent: 45, emoji: '🔘', color: '#FF6B6B'},
+        {name: 'Çoxlu Cavab', percent: 20, emoji: '☑️', color: '#4ECDC4'},
+        {name: 'Doğru/Yanlış', percent: 15, emoji: '✓/✗', color: '#45B7D1'},
+        {name: 'Açıq Cavablı', percent: 10, emoji: '📝', color: '#96CEB4'},
+        {name: 'Boşluq', percent: 5, emoji: '📄', color: '#FECA57'},
+        {name: 'Uyğunlaşdırma', percent: 3, emoji: '🔗', color: '#FF9FF3'},
+        {name: 'Sıralama', percent: 2, emoji: '🔢', color: '#54A0FF'}
+    ];
+    
+    let chartHTML = '<div class="pie-chart-container">';
+    chartHTML += '<h4>🥧 Test Formatlarının Paylanması</h4>';
+    chartHTML += '<div class="pie-chart-legend">';
+    
+    formatData.forEach(item => {
+        chartHTML += `
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: ${item.color};"></div>
+                <span>${item.emoji} ${item.name}: ${item.percent}%</span>
+            </div>
+        `;
+    });
+    
+    chartHTML += '</div></div>';
+    chartContainer.innerHTML = chartHTML;
+}
+
+// Usage bar chart yenilə
+function updateUsageBarChart() {
+    const chartContainer = document.getElementById('usage-bar-chart');
+    if (!chartContainer) return;
+    
+    const usageData = Object.keys(testQuestions).map(key => ({
+        format: testQuestions[key].title,
+        percent: testQuestions[key].usage_percent
+    })).sort((a, b) => b.percent - a.percent);
+    
+    let chartHTML = '<div class="usage-chart">';
+    chartHTML += '<h4>📊 Test Formatlarının İstifadə Tezliyi</h4>';
+    
+    usageData.forEach(item => {
+        const barWidth = (item.percent / 50) * 100; // 50% maximum width
+        chartHTML += `
+            <div class="usage-bar">
+                <div class="usage-label">${item.format}</div>
+                <div class="usage-bar-container">
+                    <div class="usage-bar-fill" style="width: ${barWidth}%"></div>
+                    <span class="usage-percent">${item.percent}%</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    chartHTML += '</div>';
+    chartContainer.innerHTML = chartHTML;
+}
+
+// Ətraflı analiz yenilə
+function updateDetailedAnalysis() {
+    const analysisContainer = document.getElementById('detailed-analysis');
+    if (!analysisContainer) return;
+    
+    let analysisText = '';
+    
+    if (testResults.length > 0) {
+        const totalQuestions = testResults.length;
+        const correctAnswers = testResults.filter(result => result.is_correct).length;
+        const successRate = Math.round((correctAnswers / totalQuestions) * 100);
+        const avgScore = Math.round(testResults.reduce((sum, result) => sum + result.score, 0) / totalQuestions * 100) / 100;
+        const avgTime = Math.round(testResults.reduce((sum, result) => sum + result.response_time, 0) / totalQuestions);
+        
+        analysisText = `
+🎯 === ŞƏXSİ TEST NƏTİCƏLƏRİ ===
+
+📊 Ümumi statistika:
+   • Ümumi sual sayı: ${totalQuestions}
+   • Doğru cavablar: ${correctAnswers} (${successRate}%)
+   • Orta bal: ${avgScore}
+   • Orta cavab müddəti: ${avgTime} saniyə
+
+🏆 === PERFORMANs QİYMƏTLƏNDİRMƏSİ ===
+${successRate >= 90 ? '🥇 ƏLAHƏZRƏT! Siz test formatlarında ustadsınız!' : 
+  successRate >= 80 ? '🥈 ƏLA! Çox yaxşı nəticə göstərdiniz.' : 
+  successRate >= 70 ? '🥉 YAXŞI! Daha çox təcrübə ilə daha da yaxşılaşacaq.' : 
+  successRate >= 60 ? '📈 ORTA! Əlavə təcrübə tövsiyə olunur.' : 
+  '📚 BAŞLANĞIC! Narahat olmayın, hər kəs öyrənməklə başlayır.'}
+
+💡 === TOVSİYƏLƏR ===
+🎯 Güclü tərəfləriniz:
+${successRate >= 80 ? '   • Test formatlarını yaxşı anlayırsınız' : '   • Öyrənməyə həvəslisiniz'}
+   • Müxtəlif sual tiplərini sınaqdan keçirdiniz
+
+🔄 Təkmilləşdirmə sahələri:
+${successRate < 80 ? '   • Daha çox müxtəlif format növlərini sınayın' : ''}
+${avgTime > 60 ? '   • Cavab vermə sürətinizi artırın' : ''}
+   • Açıq cavablı suallar üçün açar sözlərə diqqət edin
+        `;
+    } else {
+        analysisText = `
+📋 === TEST FORMATLARININ ƏTRAYLI ANALİZİ ===
+
+🎯 FORMATLARIN XÜSUSİYYƏTLƏRİ:
+
+1️⃣ ÇOXLU SEÇİM (Multiple Choice) - 45% istifadə
+   🔸 Üstünlükləri:
+     • Avtomatik qiymətləndirmə
+     • Obyektiv nəticələr
+     • Böyük qruplar üçün əlverişli
+     • Sürətli test keçirmə
+   🔸 Çatışmazlıqları:
+     • Təsadüfi cavab riski (25% 4 variantda)
+     • Yaradıcı düşüncəni məhdudlaşdırır
+     • Yalnız tanıma səviyyəsində yoxlayır
+
+2️⃣ ÇOXLU CAVAB (Multiple Response) - 20% istifadə
+   🔸 Üstünlükləri:
+     • Daha dəqiq bilik ölçümü
+     • Qismən bal verilə bilər
+     • Təsadüfi cavab şansı azdır
+   🔸 Çatışmazlıqları:
+     • Mürəkkəb qiymətləndirmə
+     • Şagirdlər üçün çaşdırıcı ola bilər
+
+3️⃣ DOĞRU/YANLIŞ (True/False) - 15% istifadə
+   🔸 Üstünlükləri:
+     • Çox sürətli
+     • Sadə qiymətləndirmə
+     • Çox sual sormaq mümkün
+   🔸 Çatışmazlıqları:
+     • 50% təsadüfi doğru cavab şansı
+     • Yüzeysel bilik yoxlaması
+
+📊 OPTIMAL TEST KOMPOZİSİYASI:
+• 60% Çoxlu seçim (əsas bilik)
+• 20% Çoxlu cavab (əlaqələr)
+• 15% Doğru/Yanlış (faktlar)
+• 5% Açıq cavablı (dərin anlayış)
+        `;
+    }
+    
+    analysisContainer.innerHTML = `<pre>${analysisText}</pre>`;
+}
+
+// Nəticələri yüklə
+function downloadResults() {
+    if (testResults.length === 0) {
+        showNotification('⚠️ Yükləmək üçün test nəticəsi yoxdur!', 'warning');
+        return;
+    }
+    
+    const csvContent = convertToCSV(testResults);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `test_results_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('📥 Nəticələr uğurla yükləndi!', 'success');
+    }
+}
+
+// CSV-yə çevir
+function convertToCSV(data) {
+    const headers = ['Sual ID', 'Sual Mətnii', 'Format', 'Mövzu', 'Çətinlik', 'İstifadəçi Cavabı', 'Düzgün Cavab', 'Doğru?', 'Bal', 'Max Bal', 'Vaxt', 'Tarix'];
+    
+    const csvRows = [headers.join(',')];
+    
+    data.forEach(result => {
+        const row = [
+            result.question_id,
+            `"${result.question_text.replace(/"/g, '""')}"`,
+            `"${getFormatDisplayName(result.question_type)}"`,
+            `"${result.topic}"`,
+            result.difficulty,
+            `"${result.user_answer.replace(/"/g, '""')}"`,
+            `"${result.correct_answer.replace(/"/g, '""')}"`,
+            result.is_correct ? 'Bəli' : 'Xeyr',
+            result.score,
+            result.max_score,
+            result.response_time,
+            result.timestamp
+        ];
+        csvRows.push(row.join(','));
+    });
+    
+    return csvRows.join('\n');
+}
+
+// Bildiriş göstər
+function showNotification(message, type = 'info', duration = 4000) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    
+    // Notification container yarat və ya mövcud olanı tap
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.className = 'notification-container';
+        document.body.appendChild(container);
+    }
+    
+    container.appendChild(notification);
+    
+    // Animasiya
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    // Auto remove
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, duration);
+}
+
+// Page load event
+window.addEventListener('load', function() {
+    // Əlavə yükləmə əməliyyatları
+    console.log('Test Tapşırıqları Formatları tətbiqi yükləndi!');
+});
