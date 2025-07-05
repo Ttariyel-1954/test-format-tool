@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Tapşırıqlarının Formatı - Talıbov Tariyel</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="main-header">
+            <div class="header-content">
+                <h1>📝 Test Tapşırıqlarının Formatı</h1>
+                <p class="subtitle">Test suallarının peşəkar formatlaşdırılması üçün avtomatik vasitə</p>
+                <div class="author-info">
+                    <span>👨‍🏫 Talıbov Tariyel İsmayıl oğlu</span>
+                    <span>🏛️ Azərbaycan Təhsil İnstitutu</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Question Type Selection -->
+            <section class="format-section">
+                <h2>🎯 Sual Növünü Seçin</h2>
+                <div class="question-types">
+                    <button class="type-btn active" data-type="multiple">
+                        <span class="btn-icon">📊</span>
+                        <span class="btn-text">Çoxseçimli Suallar</span>
+                    </button>
+                    <button class="type-btn" data-type="truefalse">
+                        <span class="btn-icon">✅</span>
+                        <span class="btn-text">Doğru/Səhv</span>
+                    </button>
+                    <button class="type-btn" data-type="matching">
+                        <span class="btn-icon">🔗</span>
+                        <span class="btn-text">Uyğunlaşdırma</span>
+                    </button>
+                    <button class="type-btn" data-type="fillblank">
+                        <span class="btn-icon">📝</span>
+                        <span class="btn-text">Boşluq Doldurma</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Question Input Section -->
+            <section class="input-section">
+                <h3>📋 Sual Mətnini Daxil Edin</h3>
+                <div class="question-input-container">
+                    <textarea 
+                        id="questionText" 
+                        placeholder="Test sualınızı bu sahəyə yazın. Məsələn: Azərbaycanın paytaxtı hansı şəhərdir?"
+                        rows="4"
+                    ></textarea>
+                    <div class="input-counter">
+                        <span id="charCounter">0</span> simvol
+                    </div>
+                </div>
+                
+                <div id="answersSection" class="answers-section">
+                    <!-- Dynamic content will be added here -->
+                </div>
+            </section>
+
+            <!-- Format Options -->
+            <section class="format-options">
+                <h3>⚙️ Format Seçimləri</h3>
+                <div class="options-grid">
+                    <label class="option-item">
+                        <input type="checkbox" id="numbering" checked>
+                        <span class="checkmark"></span>
+                        <span>🔢 Avtomatik nömrələmə</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="bullets">
+                        <span class="checkmark"></span>
+                        <span>• Bullet nöqtələri</span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="bold">
+                        <span class="checkmark"></span>
+                        <span><strong>Qalın mətn</strong></span>
+                    </label>
+                    <label class="option-item">
+                        <input type="checkbox" id="showAnswer">
+                        <span class="checkmark"></span>
+                        <span>✅ Doğru cavabı göstər</span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Output Section -->
+            <section class="output-section">
+                <div class="output-header">
+                    <h3>📄 Formatlaşdırılmış Nəticə</h3>
+                    <div class="output-controls">
+                        <button id="previewBtn" class="control-btn">👁️ Önizləmə</button>
+                        <button id="editModeBtn" class="control-btn">📝 Redaktə</button>
+                    </div>
+                </div>
+                
+                <div class="output-container">
+                    <div id="formattedOutput" class="output-box">
+                        <div class="placeholder-text">
+                            🎯 Test sualınızı daxil etdikdən sonra formatlaşdırılmış nəticə burada görünəcək
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <button id="copyBtn" class="action-btn copy-btn">
+                        <span class="btn-icon">📋</span>
+                        <span class="btn-text">Kopyala</span>
+                    </button>
+                    <button id="downloadBtn" class="action-btn download-btn">
+                        <span class="btn-icon">💾</span>
+                        <span class="btn-text">Word Yüklə</span>
+                    </button>
+                    <button id="printBtn" class="action-btn print-btn">
+                        <span class="btn-icon">🖨️</span>
+                        <span class="btn-text">Çap Et</span>
+                    </button>
+                    <button id="clearBtn" class="action-btn clear-btn">
+                        <span class="btn-icon">🗑️</span>
+                        <span class="btn-text">Təmizlə</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Statistics Section -->
+            <section class="stats-section">
+                <h3>📊 Statistika</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number" id="questionsCount">0</span>
+                        <span class="stat-label">Sual</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="answersCount">0</span>
+                        <span class="stat-label">Cavab</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="wordsCount">0</span>
+                        <span class="stat-label">Söz</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="charactersCount">0</span>
+                        <span class="stat-label">Simvol</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="main-footer">
+            <div class="footer-content">
+                <p>© 2025 | Talıbov Tariyel İsmayıl oğlu</p>
+                <p>Azərbaycan Respublikasının əməkdar müəllimi | Azərbaycan Təhsil İnstitutunun direktor müavini</p>
+                <div class="footer-links">
+                    <a href="https://ttariyel-1954.github.io/talibov-tariyel-portal/" target="_blank">
+                        🌐 Əsas Portal
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="loading-indicator">
+        <div class="spinner"></div>
+        <p>Formatlaşdırılır...</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
